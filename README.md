@@ -22,7 +22,7 @@ Find out more:
 * Documentation: https://github.com/contiki-ng/contiki-ng/wiki
 * Web site: http://contiki-ng.org
 
-Engage with the community::
+Engage with the community:
 
 * Gitter: https://gitter.im/contiki-ng
 * Twitter: https://twitter.com/contiki_ng
