@@ -38,29 +38,56 @@
  */
 
 #include "contiki.h"
+#include "dev/leds.h"
+#include "sys/etimer.h"
 
 #include <stdio.h> /* For printf() */
+/*---------------------------------------------------------------------------*/
+static struct etimer et;
 /*---------------------------------------------------------------------------*/
 PROCESS(hello_world_process, "Hello world process");
 AUTOSTART_PROCESSES(&hello_world_process);
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(hello_world_process, ev, data)
 {
-  static struct etimer timer;
 
   PROCESS_BEGIN();
-
-  /* Setup a periodic timer that expires after 10 seconds. */
-  etimer_set(&timer, CLOCK_SECOND * 10);
-
-  while(1) {
-    printf("Hello, world\n");
-
-    /* Wait for the periodic timer to expire and then restart the timer. */
-    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&timer));
-    etimer_reset(&timer);
-  }
-
+	
+	printf("Lyudmil Popov\n");	
+	
+	while(1){
+	
+		leds_on(LEDS_RED);
+		printf("red LED: ON \n");
+		
+		etimer_set(&et, CLOCK_SECOND * 2);
+		PROCESS_WAIT_EVENT();
+		if(etimer_expired(&et)) {
+			leds_off(LEDS_RED);
+			printf("red LED: OFF\n");
+			leds_on(LEDS_BLUE);
+			printf("blue LED: ON\n");
+		}
+		
+		etimer_set(&et, CLOCK_SECOND * 4);
+		PROCESS_WAIT_EVENT();
+		
+		if(etimer_expired(&et)) {
+			leds_on(LEDS_RED);
+			printf("DOUBLE\n");
+		}
+		
+		etimer_set(&et, CLOCK_SECOND);
+		
+		PROCESS_WAIT_EVENT();
+		
+		if(etimer_expired(&et)) {
+			
+			leds_off(LEDS_ALL);
+			printf("red LED: OFF\n");
+			printf("blue LED: OFF\n");
+		}
+	}
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

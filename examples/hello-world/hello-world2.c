@@ -1,16 +1,15 @@
 /*
- * Copyright (c) 2018, George Oikonomou - http://www.spd.gr
- * All rights reserved.
+ * Copyright (C) 2015, Intel Corporation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
  * are met:
- *
  * 1. Redistributions of source code must retain the above copyright
  *    notice, this list of conditions and the following disclaimer.
  * 2. Redistributions in binary form must reproduce the above copyright
  *    notice, this list of conditions and the following disclaimer in the
  *    documentation and/or other materials provided with the distribution.
+ *
  * 3. Neither the name of the copyright holder nor the names of its
  *    contributors may be used to endorse or promote products derived
  *    from this software without specific prior written permission.
@@ -28,62 +27,55 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-/*---------------------------------------------------------------------------*/
+
+#include <stdio.h>
+
 #include "contiki.h"
 #include "dev/button-hal.h"
 #include "dev/leds.h"
 
-#include "sys/timer.h"
+PROCESS(ctimer_proc, "ctimer process 1");
 
-#include <stdio.h>
+AUTOSTART_PROCESSES(&ctimer_proc);
+
 /*---------------------------------------------------------------------------*/
-PROCESS(button_hal_example, "Button HAL Example");
-AUTOSTART_PROCESSES(&button_hal_example);
+static struct ctimer timer_ctimer;
+static struct ctimer timer_ctimer2;
 /*---------------------------------------------------------------------------*/
-PROCESS_THREAD(button_hal_example, ev, data)
+void
+ctimer_callback(void *ptr)
 {
-  button_hal_button_t *btn;
-
+  /* rearm the ctimer */
+  leds_off(LEDS_RED);
+  ctimer_reset(&timer_ctimer);
+  printf("CTimer callback called\n");
+}
+/*---------------------------------------------------------------------------*/
+void
+ctimer_callback2(void *ptr)
+{
+  /* rearm the ctimer */
+  ctimer_reset(&timer_ctimer2);
+	leds_on(LEDS_RED);
+}
+/*---------------------------------------------------------------------------*/
+PROCESS_THREAD(ctimer_proc, ev, data)
+{
+	
   PROCESS_BEGIN();
-
-  btn = button_hal_get_by_index(0);
-
-  printf("Button HAL example.\n");
-  printf("Device button count: %u.\n", button_hal_button_count);
-
-  if(btn) {
-    printf("%s on pin %u with ID=0, Logic=%s, Pull=%s\n",
-           BUTTON_HAL_GET_DESCRIPTION(btn), btn->pin,
-           btn->negative_logic ? "Negative" : "Positive",
-           btn->pull == GPIO_HAL_PIN_CFG_PULL_UP ? "Pull Up" : "Pull Down");
-  }
-
-  while(1) {
-
-    PROCESS_YIELD();
-
-    if(ev == button_hal_press_event) {
-      btn = (button_hal_button_t *)data;
-      printf("Press event (%s)\n", BUTTON_HAL_GET_DESCRIPTION(btn));
-
-      if(btn == button_hal_get_by_id(BUTTON_HAL_ID_BUTTON_ZERO)) {
-        printf("This was button 0, on pin %u\n", btn->pin);
-      }
-    } else if(ev == button_hal_release_event) {
-      btn = (button_hal_button_t *)data;
-      printf("Release event (%s)\n", BUTTON_HAL_GET_DESCRIPTION(btn));
-    } else if(ev == button_hal_periodic_event) {
-      btn = (button_hal_button_t *)data;
-      printf("Periodic event, %u seconds (%s)\n", btn->press_duration_seconds,
-             BUTTON_HAL_GET_DESCRIPTION(btn));
-
-      if(btn->press_duration_seconds > 5) {
-        printf("%s pressed for more than 5 secs. Do custom action\n",
-               BUTTON_HAL_GET_DESCRIPTION(btn));
-      }
-    }
-  }
-
+	
+	while(1) {
+		ctimer_set(&timer_ctimer, CLOCK_SECOND, ctimer_callback, NULL);
+		ctimer_set(&timer_ctimer2	, CLOCK_SECOND * 3, ctimer_callback2, NULL);
+		
+		PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
+		leds_off(LEDS_ALL);
+		leds_on(LEDS_GREEN);
+		PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_release_event);
+		leds_off(LEDS_GREEN);
+	}
+	
   PROCESS_END();
 }
+
 /*---------------------------------------------------------------------------*/

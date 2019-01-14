@@ -64,7 +64,7 @@ PROCESS_THREAD(leds_example, ev, data)
         leds_toggle(LEDS_ALL);
 #if !LEDS_LEGACY_API
       } else if((counter & 7) == 4) {
-        leds_single_on(LEDS_LED1);
+        leds_single_on(LEDS_LED1);	
       } else if((counter & 7) == 5) {
         leds_single_off(LEDS_LED1);
       } else if((counter & 7) == 6) {
@@ -73,7 +73,7 @@ PROCESS_THREAD(leds_example, ev, data)
       } else if((counter & 7) == 7) {
         leds_toggle(LEDS_ALL);
       }
-
+			printf("%d",counter);
       counter++;
       etimer_set(&et, CLOCK_SECOND);
     }
