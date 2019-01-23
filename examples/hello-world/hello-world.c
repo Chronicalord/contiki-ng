@@ -54,102 +54,84 @@ PROCESS(led_sequence, "LED sequence process");
 PROCESS(btn_press, "Button press LED process");
 AUTOSTART_PROCESSES(&led_sequence, &btn_press);
 /*---------------------------------------------------------------------------*/
-void process_sequence(int a[][2], int alen){
-	
-	/* Variables declared locally to function instead of loop for readability.
-	Efficiency is equal.*/
-	int colour;
-	int time;
-	
-	/* Print table for testing purposes */
-	for ( int i = 0; i < alen; i++ ){
- 		for (  int j = 0; j < 2; j++ ){
-    	printf("a[%d][%d] = %d\n", i,j, a[i][j] );
-  	}
-  }
-  
-  /* Loop through inner elements and store in variables */ 
-	for(int i = 0; i < alen; i++){
-		for(int j = 0; j < 1; j++){
-			colour = a[i][j];
-			time =  a[i][j+1];
-			flash_sequence(colour,time);
-			/* Print and compare with table for testing */
-			printf("colour: %d time: %d\n",colour,time);
-		}
-	}
-	
-}
-
+//static struct etimer et1;
+/*---------------------------------------------------------------------------*/
 void flash_sequence(int colour, int time){
 	switch(colour) {
 		//Red	
-		case 1:
-		 		printf("RED for %d seconds",time);
+		case RED:
+				leds_on(LEDS_RED);
+		 		printf("RED for %d seconds\n",time);
 		    break; 
 		 //Green
-		 case 20:
-		 		printf("GREEN for %d seconds",time);
+		 case GREEN:
+		 		leds_on(LEDS_GREEN);
+		 		printf("GREEN for %d second(s)\n",time);
 		    break; 
 		 //Blue   
-		 case 30:
-		 		printf("BLUE for %d seconds",time);
+		 case BLUE:
+		 		leds_on(LEDS_BLUE);
+		 		printf("BLUE for %d second(s)\n",time);
 		    break; 
 		 //Red & Green   
-		 case 21:
-		 		printf("RED & GREEN for %d seconds",time);
+		 case REDGREEN:
+		 		leds_on(LEDS_RED);
+		 		leds_on(LEDS_GREEN);		
+		 		printf("RED & GREEN for %d second(s)\n",time);
 		    break;    
 		 //Red & Blue   
-		 case 31:
-		 		printf("RED & BLUE for %d seconds",time);
+		 case REDBLUE:
+		 		leds_on(LEDS_RED);
+		 		leds_on(LEDS_BLUE);
+		 		printf("RED & BLUE for %d second(s)\n",time);
 		    break;   
 			//Green & Blue
-			case 50:
-		 		printf("GREEN & BLUE for %d seconds",time);
-		    break; 
-		    
+			case GREENBLUE:
+				leds_on(LEDS_GREEN);
+		 		leds_on(LEDS_BLUE);
+		 		printf("GREEN & BLUE for %d second(s)\n",time);
+		    break;
+		  //no colour   
 		 	default :
 		 		printf("No colour input");
 	}
 }
 /*---------------------------------------------------------------------------*/
+void process_sequence(int a[][2], int arrlen){
+	
+	int colour;
+	int time;
+	
+  /* Loop through inner elements and store in variables */ 
+	for(int i = 0; i < arrlen; i++){
+		for(int j = 0; j < 1; j++){
+			colour = a[i][j];
+			time =  a[i][j+1];
+			
+			/* Print and compare with table for testing */
+			//printf("colour: %d time: %d\n",colour,time);
+			flash_sequence(colour, time);
+			clock_wait(CLOCK_SECOND * time);
+			leds_off(LEDS_ALL);
+		}
+	}
+}
+/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(led_sequence, ev, data)
-{
-	static struct etimer et1;
-  static struct etimer et2;
-  
+{ 
   /* Declare multidimensional array with sequences */
-  int sequence[][2] = { {RED,2}, {BLUE,4}, {REDBLUE,1}, {GREEN,1}, {GREENBLUE,1},
-  {REDGREEN,1}, {BLUE,21} };
+  int sequence[][2] = { {RED,2}, {BLUE,4}, {REDBLUE,1} };
   
-  /* Compute amount of sequence inner arrays as cant be done in function */
+  /* Compute length of sequence as cant be done in function */
   int sequence_len = sizeof(sequence)/sizeof(sequence[0]);
+  
   PROCESS_BEGIN();
 	
 	printf("Lyudmil Popov\n");	
 	
-	/* Call function with sequence and length arguments */
-	process_sequence(sequence, sequence_len);
-	
-	etimer_set(&et1, CLOCK_SECOND);
-	etimer_set(&et2, CLOCK_SECOND * 3);
-	
 	while(1) {
-		PROCESS_YIELD();
-		
-		if(ev == button_hal_press_event){
-			PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_release_event);	
-		}
-		if(etimer_expired(&et1)){
-			leds_off(LEDS_RED);
-			printf("etimer expired\n");
-			etimer_reset(&et1);
-		}
-		if(etimer_expired(&et2)){
-			leds_on(LEDS_RED);
-			printf("red\n");
-			etimer_reset(&et2);
-		}
+		/* Call function with sequence and length */
+		process_sequence(sequence, sequence_len);
 	}
 		
   PROCESS_END();
@@ -157,7 +139,6 @@ PROCESS_THREAD(led_sequence, ev, data)
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(btn_press, ev, data)
 {
-
   PROCESS_BEGIN();
   while(1){
 		PROCESS_YIELD();
