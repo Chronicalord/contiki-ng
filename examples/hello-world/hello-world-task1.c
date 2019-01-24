@@ -38,42 +38,96 @@
 #include "dev/leds.h"
 #include "dev/button-hal.h"
 #include "sys/etimer.h"
+
 #include <stdio.h>
+
+/* Magic number RGB definitions*/
+#define RED 1
+#define GREEN 20
+#define BLUE 30
+#define REDGREEN 21
+#define REDBLUE 31
+#define GREENBLUE 50
 
 /*---------------------------------------------------------------------------*/
 PROCESS(led_sequence, "LED sequence process");
 PROCESS(btn_press, "Button press LED process");
 AUTOSTART_PROCESSES(&led_sequence, &btn_press);
 /*---------------------------------------------------------------------------*/
+void flash_colour(int colour, int time){
+	switch(colour) {
+		/* Red */
+		case RED:
+				leds_on(LEDS_RED);
+		 		printf("RED for %d second(s)\n",time);
+		    break; 
+		 /* Green */
+		 case GREEN:
+		 		leds_on(LEDS_GREEN);
+		 		printf("GREEN for %d second(s)\n",time);
+		    break; 
+		 /* Blue */   
+		 case BLUE:
+		 		leds_on(LEDS_BLUE);
+		 		printf("BLUE for %d second(s)\n",time);
+		    break; 
+		 /* Red & Green */   
+		 case REDGREEN:
+		 		leds_on(LEDS_RED);
+		 		leds_on(LEDS_GREEN);		
+		 		printf("RED & GREEN for %d second(s)\n",time);
+		    break;    
+		 /* Red & Blue */   
+		 case REDBLUE:
+		 		leds_on(LEDS_RED);
+		 		leds_on(LEDS_BLUE);
+		 		printf("RED & BLUE for %d second(s)\n",time);
+		    break;   
+			/* Green & Blue */
+			case GREENBLUE:
+				leds_on(LEDS_GREEN);
+		 		leds_on(LEDS_BLUE);
+		 		printf("GREEN & BLUE for %d second(s)\n",time);
+		    break;
+		  /* no colour */   
+		 	default :
+		 		printf("No colour input");
+	}
+}
+/*---------------------------------------------------------------------------*/
+void process_sequence(int a[][2], int arrlen){
+	
+	int colour;
+	int time;
+	
+  /* Loop through inner elements and store in variables */ 
+	for(int i = 0; i < arrlen; i++){
+		for(int j = 0; j < 1; j++){
+			colour = a[i][j];
+			time =  a[i][j+1];
+
+			flash_colour(colour, time);
+			clock_wait(CLOCK_SECOND * time);
+			leds_off(LEDS_ALL);
+		}
+	}
+}
+/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(led_sequence, ev, data)
-{
-	static struct etimer et1;
-  static struct etimer et2;
+{ 
+  /* Declare multidimensional array with sequences */
+  int sequence[][2] = { {RED,2}, {BLUE,4}, {REDBLUE,1} };
+  
+  /* Compute length of sequence */
+  int sequence_len = sizeof(sequence)/sizeof(sequence[0]);
+  
+  PROCESS_BEGIN();
 	
 	printf("Lyudmil Popov\n");	
 	
-	/* Call function with sequence and length arguments */
-	process_sequence(sequence, sequence_len);
-	
-	etimer_set(&et1, CLOCK_SECOND);
-	etimer_set(&et2, CLOCK_SECOND * 3);
-	
 	while(1) {
-		PROCESS_YIELD();
-		
-		if(ev == button_hal_press_event){
-			PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_release_event);	
-		}
-		if(etimer_expired(&et1)){
-			leds_off(LEDS_RED);
-			printf("etimer expired\n");
-			etimer_reset(&et1);
-		}
-		if(etimer_expired(&et2)){
-			leds_on(LEDS_RED);
-			printf("red\n");
-			etimer_reset(&et2);
-		}
+		/* Call function with sequence and length */
+		process_sequence(sequence, sequence_len);
 	}
 		
   PROCESS_END();
@@ -81,7 +135,6 @@ PROCESS_THREAD(led_sequence, ev, data)
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(btn_press, ev, data)
 {
-
   PROCESS_BEGIN();
   while(1){
 		PROCESS_YIELD();
