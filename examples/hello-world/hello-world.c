@@ -40,41 +40,71 @@
 #include "sys/etimer.h"
 #include <stdio.h>
 
+/* Magic number RGB definitions*/
+#define RED 1
+#define GREEN 2
+#define BLUE 3
+#define REDGREEN 4
+#define REDBLUE 5
+#define GREENBLUE 6
+
 /*---------------------------------------------------------------------------*/
 PROCESS(led_sequence, "LED sequence process");
 PROCESS(btn_press, "Button press LED process");
 AUTOSTART_PROCESSES(&led_sequence, &btn_press);
 /*---------------------------------------------------------------------------*/
+static int colour;
+static int counter = 1;
+/*---------------------------------------------------------------------------*/
 PROCESS_THREAD(led_sequence, ev, data)
-{
-	static struct etimer et1;
-  static struct etimer et2;
+{	
+	
+	static struct etimer et;
+	
+	PROCESS_BEGIN();
 	
 	printf("Lyudmil Popov\n");	
 	
-	/* Call function with sequence and length arguments */
-	process_sequence(sequence, sequence_len);
+	/* Set starting colour */
+	colour = RED;
 	
-	etimer_set(&et1, CLOCK_SECOND);
-	etimer_set(&et2, CLOCK_SECOND * 3);
+	etimer_set(&et, CLOCK_SECOND);
 	
 	while(1) {
-		PROCESS_YIELD();
 		
+		PROCESS_YIELD();	
+		
+		if(ev == PROCESS_EVENT_TIMER){
+			leds_off(LEDS_ALL);
+		}
+		
+		/* If Event is a button press and for as long as its held down */
 		if(ev == button_hal_press_event){
 			PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_release_event);	
 		}
-		if(etimer_expired(&et1)){
-			leds_off(LEDS_RED);
-			printf("etimer expired\n");
-			etimer_reset(&et1);
-		}
-		if(etimer_expired(&et2)){
+		
+		if(etimer_expired(&et) && colour == RED){
+			printf("%d----> red LED: ON\n",counter++);
 			leds_on(LEDS_RED);
-			printf("red\n");
-			etimer_reset(&et2);
+			etimer_set(&et, CLOCK_SECOND * 2);
+			colour = BLUE;
 		}
-	}
+		
+		if(etimer_expired(&et) && colour == BLUE){
+			printf("%d----> blue LED: ON, red LED: OFF\n",counter++);
+			leds_on(LEDS_BLUE);
+			etimer_set(&et, CLOCK_SECOND * 4);
+			colour = REDBLUE;
+		}
+		
+		if(etimer_expired(&et) && colour == REDBLUE){
+			printf("%d----> red LED: ON, blue LED: ON\n",counter++);
+			leds_on(LEDS_RED);
+			leds_on(LEDS_BLUE);
+			etimer_set(&et, CLOCK_SECOND);
+			colour = RED;
+		}
+	}/* end of while */
 		
   PROCESS_END();
 }
@@ -83,15 +113,18 @@ PROCESS_THREAD(btn_press, ev, data)
 {
 
   PROCESS_BEGIN();
+  
   while(1){
 		PROCESS_YIELD();
   	if(ev == button_hal_press_event){
-			leds_off(LEDS_RED);
+  		printf("<------Interrupt event------->\n\tgreen LED: ON\n\n");
+			leds_off(LEDS_ALL);
 			leds_on(LEDS_GREEN);		
 		}else if(ev == button_hal_release_event){
 			leds_off(LEDS_GREEN);
 		}
   }
+  
   PROCESS_END();
 }
 /*---------------------------------------------------------------------------*/

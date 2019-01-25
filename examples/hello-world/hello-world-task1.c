@@ -116,7 +116,7 @@ void process_sequence(int a[][2], int arrlen){
 PROCESS_THREAD(led_sequence, ev, data)
 { 
   /* Declare multidimensional array with sequences */
-  int sequence[][2] = { {RED,2}, {BLUE,4}, {REDBLUE,1} };
+  int sequence[][2] = { {RED,2}, {BLUE,4}, {REDBLUE,1}, {GREEN,1}, {GREENBLUE,2} };
   
   /* Compute length of sequence */
   int sequence_len = sizeof(sequence)/sizeof(sequence[0]);
