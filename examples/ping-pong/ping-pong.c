@@ -106,10 +106,10 @@ void process_tokens(int token, int token_rec){
 			leds_on(LEDS_BLUE);
 			bc_token(token_rec);
 			node_status = SENDINGNODE;
-			printf("I am pinging\n");
+			//printf("I am pinging\n");
 			discovery = 0;				
 		} if (token == token_rec) {
-			printf("I HAVE DUPE TOKEN I MUST STOP SENDING\n");
+			//printf("I HAVE DUPE TOKEN I MUST STOP SENDING\n");
 			discovery = 0;		
 		}
 }
@@ -118,12 +118,13 @@ void process_tokens(int token, int token_rec){
 void input_callback(const void *data, uint16_t len,
   const linkaddr_t *src, const linkaddr_t *dest)
 {
+	
   if(len == sizeof(int)) {
 		/* Token recieved */
     int token_rec;
     memcpy(&token_rec, data, sizeof(token_rec));
 		/* Debug Messages */
-    LOG_INFO("Received %u from ", token_rec);
+    LOG_INFO("Token received %u from ", token_rec);
     LOG_INFO_LLADDR(src);
     LOG_INFO_("\n");
 		
@@ -132,7 +133,8 @@ void input_callback(const void *data, uint16_t len,
   }
 
 	if(len == sizeof(char)) {
-		//
+		leds_on(LEDS_BLUE);
+		node_status = SENDINGNODE;
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -140,7 +142,7 @@ void input_callback(const void *data, uint16_t len,
 void bc_token(int token) {
 	nullnet_buf = (uint8_t *)&token;
 	nullnet_set_input_callback(input_callback);
-	LOG_INFO("Sending %d to ", token);
+	LOG_INFO("Sending token %d to ", token);
   LOG_INFO_LLADDR(NULL);
   LOG_INFO_("\n");
 	memcpy(nullnet_buf, &token, sizeof(token));
@@ -148,17 +150,16 @@ void bc_token(int token) {
 	NETSTACK_NETWORK.output(NULL);
 }
 /*---------------------------------------------------------------------------*/
-/* Function to unicast "Ping" packet over nullnet
-void uc_ping() {
-	nullnet_buf = 'b';
+/* Function to unicast "Ping" packet over nullnet */
+void bc_ping(char c) {
+	nullnet_buf = (uint8_t *)&c;		
 	nullnet_set_input_callback(input_callback);
-	LOG_INFO("Ping");
   LOG_INFO_LLADDR(NULL);
   LOG_INFO_("\n");
-	memcpy(nullnet_buf, &token, sizeof(token));
-	nullnet_len = sizeof(token);
+	memcpy(nullnet_buf, &c, sizeof(c));
+	nullnet_len = sizeof(c);
 	NETSTACK_NETWORK.output(NULL);
-} */
+}
 /*---------------------------------------------------------------------------*/
 PROCESS_THREAD(nullnet_example_process, ev, data)
 {
@@ -186,35 +187,25 @@ PROCESS_THREAD(nullnet_example_process, ev, data)
   while(discovery) {
 
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
-		printf("token is %d\n",token);
 
 		/* Broadcast communication token */
 		bc_token(token);
 		
     etimer_reset(&periodic_timer);
-		printf("discovery is %d\n",discovery);
 
   }
 	
 	
-	while(!discovery){
-
-	
+	while(!discovery){	
+		
 		if(node_status == SENDINGNODE){
-			printf("I am sending");
-			PROCESS_YIELD();
-			if(ev == button_hal_press_event){
-				PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_release_event);
-				
-				const char ping = 'p';
-				printf("payload is %c",ping);
-				//uc_ping();	
-			}
-		}else {
-				printf("I am receiving");
-				PROCESS_YIELD();
-			}
+			PROCESS_WAIT_EVENT_UNTIL(ev == button_hal_press_event);
+			const char ping = 'p';
+			bc_ping(ping);
 
+			leds_off(LEDS_BLUE);
+			node_status = RECEIVINGNODE;	
+		}
 	}
 
   PROCESS_END();
