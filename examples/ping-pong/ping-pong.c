@@ -32,7 +32,7 @@
 
 /**
  * \file
- *         NullNet unicast example
+ *         NullNet broadcast example
  * \author
 *         Simon Duquennoy <simon.duquennoy@ri.se>
  *
@@ -42,9 +42,16 @@
 #include "net/netstack.h"
 #include "net/nullnet/nullnet.h"
 
-#include <string.h>
-#include <stdio.h> /* For printf() */
+/* Headers for radio module of mcu */
+#include "dev/rfcore.h"
+#include "dev/cc2538-rf.h"
+#include "dev/soc-adc.h"
+#include "dev/sys-ctrl.h"
+#include "reg.h"
+/* End mcu headers*/
 
+#include <string.h>
+#include <stdio.h>
 /* Log configuration */
 #include "sys/log.h"
 #define LOG_MODULE "App"
@@ -52,17 +59,27 @@
 
 /* Configuration */
 #define SEND_INTERVAL (8 * CLOCK_SECOND)
-static linkaddr_t dest_addr = {{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }};
 
 #if MAC_CONF_WITH_TSCH
 #include "net/mac/tsch/tsch.h"
-static linkaddr_t coordinator_addr = {{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }};
+static linkaddr_t coordinator_addr =  {{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }};
 #endif /* MAC_CONF_WITH_TSCH */
 
 /*---------------------------------------------------------------------------*/
-PROCESS(nullnet_example_process, "NullNet unicast example");
+PROCESS(nullnet_example_process, "NullNet broadcast example");
 AUTOSTART_PROCESSES(&nullnet_example_process);
+/*---------------------------------------------------------------------------*/
+unsigned short
+random_num(void)
+{
+  uint32_t rv;
 
+  /* Clock the RNG LSFR once */
+  REG(SOC_ADC_ADCCON1) |= SOC_ADC_ADCCON1_RCTRL0;
+
+  rv = REG(SOC_ADC_RNDL) | (REG(SOC_ADC_RNDH) << 8);
+  return ((unsigned short)rv);
+}
 /*---------------------------------------------------------------------------*/
 void input_callback(const void *data, uint16_t len,
   const linkaddr_t *src, const linkaddr_t *dest)
@@ -92,18 +109,19 @@ PROCESS_THREAD(nullnet_example_process, ev, data)
   nullnet_len = sizeof(count);
   nullnet_set_input_callback(input_callback);
 
-  if(!linkaddr_cmp(&dest_addr, &linkaddr_node_addr)) {
-    etimer_set(&periodic_timer, SEND_INTERVAL);
-    while(1) {
-      PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
-      LOG_INFO("Sending %u to ", count);
-      LOG_INFO_LLADDR(&dest_addr);
-      LOG_INFO_("\n");
+  etimer_set(&periodic_timer, SEND_INTERVAL);
+  while(1) {
+    PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&periodic_timer));
+    LOG_INFO("Sending %u to ", count);
+    LOG_INFO_LLADDR(NULL);
+    LOG_INFO_("\n");
+    
+    memcpy(nullnet_buf, &count, sizeof(count));
+    nullnet_len = sizeof(count);
 
-      NETSTACK_NETWORK.output(&dest_addr);
-      count++;
-      etimer_reset(&periodic_timer);
-    }
+    NETSTACK_NETWORK.output(NULL);
+    count++;
+    etimer_reset(&periodic_timer);
   }
 
   PROCESS_END();
