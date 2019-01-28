@@ -234,7 +234,7 @@ PROCESS_THREAD(nullnet_example_process, ev, data)
 	/* When motes are out of discovery mode (ping-pong mode) */
 	while(!discovery){	
 		
-		/* Sender mote */
+		/* Sender mode */
 		if(node_status == SENDINGNODE){
 
 			/* On button press */
