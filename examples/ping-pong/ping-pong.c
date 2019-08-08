@@ -144,9 +144,7 @@ void process_ping(char c) {
 }
 /*---------------------------------------------------------------------------*/
 /* Function to be called upon packet reception */
-void input_callback(const void *data, uint16_t len,
-  const linkaddr_t *src, const linkaddr_t *dest)
-{
+void input_callback(const void *data, uint16_t len, const linkaddr_t *src, const linkaddr_t *dest) {
 	
 	/* If packet has size of int */
   if(len == sizeof(int)) {
