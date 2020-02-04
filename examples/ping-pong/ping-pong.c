@@ -200,8 +200,8 @@ PROCESS_THREAD(nullnet_example_process, ev, data)
 	char pong[] = "Pong";		
 	
 	/* Initialise event timers */
-  static struct etimer et1;
-	static struct etimer et2;
+        static struct etimer et1;
+        static struct etimer et2;
 	
 	/* Declare communication token only once */
 	static bool runOnce = false;
